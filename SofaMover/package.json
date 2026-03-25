@@ -1,0 +1,14 @@
+{
+  "name": "sofamover",
+  "version": "1.0.0",
+  "description": "Desktop app for visualizing moving sofa shapes",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Dan Romik",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^41.0.3"
+  }
+}

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SofaMover</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="tab-bar">
+    <button class="tab active" data-view="basic">Basic View</button>
+    <button class="tab" data-view="3d">3D View</button>
+  </div>
+
+  <div id="main-area">
+    <div id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Sofa</div>
+        <select id="sofa-select"></select>
+        <div id="sofa-area" style="font-size:12px; color:#999; margin-top:4px;"></div>
+      </div>
+
+      <div id="radius-section" class="sidebar-section" style="display:none">
+        <div class="sidebar-title">Radius: <span id="radius-value"></span></div>
+        <input type="range" id="radius-slider" min="0" max="1000" value="637">
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Perspective</div>
+        <label class="radio-label">
+          <input type="radio" name="perspective" value="hallway" checked> Hallway
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="perspective" value="sofa"> Sofa
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="perspective" value="both"> Both
+        </label>
+      </div>
+
+      <div id="visibility-section" class="sidebar-section">
+        <label class="radio-label">
+          <input type="checkbox" id="show-sofa" checked> Show Sofa
+        </label>
+        <label class="radio-label">
+          <input type="checkbox" id="show-contacts"> Show Contact Points
+        </label>
+        <label class="radio-label">
+          <input type="checkbox" id="show-tick-marks"> Show Tick Marks
+        </label>
+        <label class="radio-label">
+          <input type="checkbox" id="show-rot-path"> Show Rotation Path
+        </label>
+      </div>
+    </div>
+
+    <div id="canvas-area">
+      <div id="basic-view" class="view-content">
+        <div id="angle-label"></div>
+        <div id="canvas-container-top" class="canvas-container">
+          <canvas id="canvas-top"></canvas>
+        </div>
+        <div id="canvas-divider"></div>
+        <div id="canvas-container-bottom" class="canvas-container">
+          <canvas id="canvas-bottom"></canvas>
+        </div>
+      </div>
+      <div id="three-view" class="view-content" style="display:none">
+        <div id="three-container-top" class="canvas-container">
+          <canvas id="three-canvas-top"></canvas>
+        </div>
+        <div id="three-divider"></div>
+        <div id="three-container-bottom" class="canvas-container">
+          <canvas id="three-canvas-bottom"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div id="right-sidebar">
+      <div id="phases-section" class="sidebar-section">
+        <div class="sidebar-title">Phases</div>
+        <div id="phases-list"></div>
+      </div>
+
+      <div id="contacts-section" class="sidebar-section" style="display:none">
+        <div class="sidebar-title">Contact Points</div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#ffffff"></span>
+          <span><b>x</b> &mdash; Inner corner</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#ff4444"></span>
+          <span><b>A</b> &mdash; Wall x=1</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#44ff44"></span>
+          <span><b>B</b> &mdash; Wall x=0</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#ffff44"></span>
+          <span><b>C</b> &mdash; Wall y=1</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#ff44ff"></span>
+          <span><b>D</b> &mdash; Wall y=0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-bar">
+    <button id="slower-btn" class="speed-btn" title="Slower">[Slower]</button>
+    <button id="faster-btn" class="speed-btn" title="Faster">[Faster]</button>
+    <button id="play-btn" title="Play/Pause (Space)">&#9654;</button>
+    <input type="range" id="position-slider" min="0" max="1000" value="0">
+  </div>
+
+  <script src="lib/three.min.js"></script>
+  <script src="lib/OrbitControls.js"></script>
+  <script src="hallway.js"></script>
+  <script src="sofa-math.js"></script>
+  <script src="sofas/unit-square.js"></script>
+  <script src="sofas/semicircle.js"></script>
+  <script src="sofas/hammersley.js"></script>
+  <script src="sofas/gerver.js"></script>
+  <script src="sofas/romik.js"></script>
+  <script src="sofas/romik-pre.js"></script>
+  <script src="three-view.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
