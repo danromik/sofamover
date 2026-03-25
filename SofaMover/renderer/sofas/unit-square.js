@@ -53,10 +53,10 @@ const UnitSquare = {
     const topLeft = transform.toCanvas(p.dx, p.dy + 1);
     const size = transform.toPixels(1);
 
-    ctx.fillStyle = 'rgba(66, 133, 244, 0.45)';
+    ctx.fillStyle = SofaMath.sofaFill();
     ctx.fillRect(topLeft.x, topLeft.y, size, size);
 
-    ctx.strokeStyle = 'rgba(66, 133, 244, 0.9)';
+    ctx.strokeStyle = SofaMath.sofaStroke();
     ctx.lineWidth = 1.5;
     ctx.strokeRect(topLeft.x, topLeft.y, size, size);
   }

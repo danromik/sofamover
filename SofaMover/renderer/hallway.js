@@ -74,6 +74,13 @@ class TransformCentered {
   toPixels(mathDist) {
     return mathDist * this.scale;
   }
+
+  toMath(cx, cy) {
+    return {
+      x: cx / this.scale + this.mathXMin,
+      y: this.mathYMax - cy / this.scale
+    };
+  }
 }
 
 // Draw fixed hallway (hallway perspective)

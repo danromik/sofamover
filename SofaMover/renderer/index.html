@@ -10,7 +10,7 @@
   <div id="tab-bar">
     <button class="tab active" data-view="basic">2D View</button>
     <button class="tab" data-view="3d">3D View</button>
-    <button class="tab" data-view="balanced">Balanced Polygons</button>
+    <button class="tab" data-view="balanced">Sofa Optimizer</button>
   </div>
 
   <div id="main-area">
@@ -19,6 +19,10 @@
         <div class="sidebar-title">Sofa</div>
         <select id="sofa-select"></select>
         <div id="sofa-area" style="font-size:12px; color:#999; margin-top:4px;"></div>
+      </div>
+
+      <div id="user-defined-section" class="sidebar-section" style="display:none">
+        <button id="user-defined-restart" class="action-btn">Restart</button>
       </div>
 
       <div id="radius-section" class="sidebar-section" style="display:none">
@@ -90,11 +94,19 @@
           <button id="balanced-reset" class="action-btn">Reset</button>
         </div>
       </div>
+
+      <div class="sidebar-section" style="margin-top:auto; padding-top:8px;">
+        <div class="sidebar-title">Sofa Color</div>
+        <input type="color" id="sofa-color" value="#4285f4" style="width:100%; height:28px; border:none; cursor:pointer; background:none;">
+      </div>
     </div>
 
     <div id="canvas-area">
       <div id="basic-view" class="view-content">
         <div id="angle-label"></div>
+        <div id="user-defined-info" style="display:none; position:absolute; top:10px; left:20px; font-size:14px; color:rgba(255,200,0,0.8); pointer-events:none; z-index:1; max-width:420px; line-height:1.5;">
+          Drag from the yellow handle to trace a rotation path. Go left and up, then left and down to the x-axis.
+        </div>
         <div id="canvas-container-top" class="canvas-container">
           <canvas id="canvas-top"></canvas>
         </div>
@@ -170,6 +182,7 @@
   <script src="sofas/romik-pre.js"></script>
   <script src="three-view.js"></script>
   <script src="lib/clipper.js"></script>
+  <script src="sofas/user-defined.js"></script>
   <script src="balanced-polygons.js"></script>
   <script src="renderer.js"></script>
 </body>

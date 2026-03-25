@@ -200,6 +200,20 @@ const SofaMath = (() => {
     return pts;
   }
 
+  // --- Sofa color ---
+  let sofaColorR = 66, sofaColorG = 133, sofaColorB = 244;
+
+  function setSofaColor(hex) {
+    // hex like "#4285f4"
+    sofaColorR = parseInt(hex.slice(1, 3), 16);
+    sofaColorG = parseInt(hex.slice(3, 5), 16);
+    sofaColorB = parseInt(hex.slice(5, 7), 16);
+  }
+
+  function sofaFill() { return `rgba(${sofaColorR}, ${sofaColorG}, ${sofaColorB}, 0.45)`; }
+  function sofaStroke() { return `rgba(${sofaColorR}, ${sofaColorG}, ${sofaColorB}, 0.9)`; }
+  function sofaHex() { return '#' + [sofaColorR, sofaColorG, sofaColorB].map(c => c.toString(16).padStart(2, '0')).join(''); }
+
   // --- Draw a polygon from math-coord points ---
   function drawPolygon(ctx, transform, points) {
     ctx.beginPath();
@@ -209,9 +223,9 @@ const SofaMath = (() => {
       else ctx.lineTo(cp.x, cp.y);
     }
     ctx.closePath();
-    ctx.fillStyle = 'rgba(66, 133, 244, 0.45)';
+    ctx.fillStyle = sofaFill();
     ctx.fill();
-    ctx.strokeStyle = 'rgba(66, 133, 244, 0.9)';
+    ctx.strokeStyle = sofaStroke();
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }
@@ -234,6 +248,7 @@ const SofaMath = (() => {
     contactA, contactB, contactC, contactD,
     movementTransform, threePhaseEased, smoothstep, getPhaseBoundaries,
     T1, T2, ENTER_DIST, TRANS_EPS,
+    setSofaColor, sofaFill, sofaStroke, sofaHex,
     drawPolygon, polygonArea
   };
 })();

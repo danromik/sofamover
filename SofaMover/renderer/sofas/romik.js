@@ -284,9 +284,9 @@ const Romik = (() => {
     }
     ctx.closePath();
 
-    ctx.fillStyle = 'rgba(66, 133, 244, 0.45)';
+    ctx.fillStyle = SofaMath.sofaFill();
     ctx.fill();
-    ctx.strokeStyle = 'rgba(66, 133, 244, 0.9)';
+    ctx.strokeStyle = SofaMath.sofaStroke();
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }

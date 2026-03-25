@@ -19,14 +19,10 @@ const ThreeView = (() => {
   let currentSofaGeometry = null;
   const sofaMaterial = new THREE.MeshStandardMaterial({
     color: 0x4285f4,
-    transparent: true,
-    opacity: 0.7,
     side: THREE.DoubleSide
   });
   const sofaEdgeMaterial = new THREE.LineBasicMaterial({
-    color: 0x4285f4,
-    transparent: true,
-    opacity: 0.9
+    color: 0x4285f4
   });
 
   // --- Coordinate mapping ---
@@ -74,7 +70,7 @@ const ThreeView = (() => {
     const L = ARM_LEN;
 
     // Walls (rails): thin extruded boxes along wall edges, height H1
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xc27070 });
     const wallThickness = 0.03;
 
     // Floor: L-shaped polygon at y=0
@@ -343,5 +339,11 @@ const ThreeView = (() => {
     }
   }
 
-  return { init, update, rebuildSofa, resize, setActive, setPerspective };
+  function setSofaColor(hex) {
+    const color = new THREE.Color(hex);
+    sofaMaterial.color.copy(color);
+    sofaEdgeMaterial.color.copy(color);
+  }
+
+  return { init, update, rebuildSofa, resize, setActive, setPerspective, setSofaColor };
 })();

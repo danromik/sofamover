@@ -4,7 +4,7 @@
  * Includes trackpad scroll with inertia/bounce, keyboard shortcuts, play/pause.
  */
 
-const sofas = [UnitSquare, Semicircle, Hammersley, HammersleyGeneralized, Gerver, Romik, RomikPre];
+const sofas = [UnitSquare, Semicircle, Hammersley, HammersleyGeneralized, Gerver, Romik, RomikPre, UserDefined];
 
 const canvasTop = document.getElementById('canvas-top');
 const ctxTop = canvasTop.getContext('2d');
@@ -120,9 +120,9 @@ function drawSofaCanonical(ctx, transform, sofa) {
   }
   ctx.closePath();
 
-  ctx.fillStyle = 'rgba(66, 133, 244, 0.45)';
+  ctx.fillStyle = SofaMath.sofaFill();
   ctx.fill();
-  ctx.strokeStyle = 'rgba(66, 133, 244, 0.9)';
+  ctx.strokeStyle = SofaMath.sofaStroke();
   ctx.lineWidth = 1.5;
   ctx.stroke();
 }
@@ -171,7 +171,7 @@ function drawContactPointsCanonical(ctx, transform, sofa, t) {
 }
 
 const ROT_PATH_STEPS = 200;
-const ROT_PATH_SOFAS = new Set(['Hammersley', 'Generalized Hammersley', 'Gerver', 'Romik']);
+const ROT_PATH_SOFAS = new Set(['Hammersley', 'Generalized Hammersley', 'Gerver', 'Romik', 'User-defined']);
 
 function drawRotationPathHallway(ctx, transform, sofa, t) {
   if (!ROT_PATH_SOFAS.has(sofa.name)) return;
@@ -273,6 +273,13 @@ function drawSofaPerspective(ctx, container, sofa, t) {
 
   const transform = new TransformCentered(w, h, -0.3, 0.4, 3.85);
 
+  // User-defined sofa handles its own drawing in idle/dragging states
+  if (sofa.isUserDefined && sofa.getState() !== 'complete') {
+    ctx.clearRect(0, 0, w, h);
+    sofa.drawSofaPerspective(ctx, transform, t);
+    return;
+  }
+
   const phase = sofa.getPhase(t);
   const rp = sofa.getRotPathPoint(phase.angle);
 
@@ -336,7 +343,14 @@ function redraw() {
   updatePhaseHighlight(sofa, t);
 
   // Update angle label (hide for unit square, and hide in 3D view)
-  if (currentView !== '3d' && sofa.getPhase && sofa !== UnitSquare) {
+  if (currentView !== '3d' && sofa.isUserDefined && sofa.getState() === 'dragging') {
+    const deg = sofa.getCurrentAngle() * 180 / Math.PI;
+    const degrees = deg.toFixed(1);
+    const padded = deg < 10 ? '\u2007' + degrees : degrees;
+    angleLabel.textContent = `Rotation angle: ${padded}\u00B0`;
+    angleLabel.style.display = '';
+  } else if (currentView !== '3d' && sofa.getPhase && sofa !== UnitSquare &&
+             !(sofa.isUserDefined && sofa.getState() === 'idle')) {
     const phase = sofa.getPhase(t);
     const deg = phase.angle * 180 / Math.PI;
     const degrees = deg.toFixed(3);
@@ -401,6 +415,8 @@ function scrollAnimLoop() {
 
 canvasArea.addEventListener('wheel', (e) => {
   e.preventDefault();
+  const sofa = sofas[parseInt(sofaSelect.value, 10)];
+  if (sofa.isUserDefined && sofa.getState() === 'dragging') return;
   // Stop play if scrolling
   if (isPlaying) togglePlay();
 
@@ -679,8 +695,29 @@ sofaSelect.addEventListener('change', () => {
   updateRadiusUI();
   const sofa = sofas[parseInt(sofaSelect.value, 10)];
   buildPhasesUI(sofa);
+
+  const infoEl = document.getElementById('user-defined-info');
+  const udSection = document.getElementById('user-defined-section');
+  if (sofa.isUserDefined) {
+    // Force sofa perspective, disable other options
+    currentPerspective = 'sofa';
+    document.querySelectorAll('input[name="perspective"]').forEach(r => {
+      r.checked = (r.value === 'sofa');
+      r.disabled = true;
+    });
+    sofa.reset();
+    if (infoEl) infoEl.style.display = '';
+    if (udSection) udSection.style.display = '';
+  } else {
+    document.querySelectorAll('input[name="perspective"]').forEach(r => {
+      r.disabled = false;
+    });
+    if (infoEl) infoEl.style.display = 'none';
+    if (udSection) udSection.style.display = 'none';
+  }
+
   if (currentView === '3d') ThreeView.rebuildSofa(sofa);
-  redraw();
+  resizeAndRedraw();
 });
 
 radiusSlider.addEventListener('input', () => {
@@ -721,6 +758,71 @@ document.querySelectorAll('input[name="perspective"]').forEach(radio => {
     }
     resizeAndRedraw();
   });
+});
+
+// --- Sofa color picker ---
+document.getElementById('sofa-color').addEventListener('input', (e) => {
+  SofaMath.setSofaColor(e.target.value);
+  ThreeView.setSofaColor(e.target.value);
+  if (currentView === 'balanced') {
+    BalancedPolygons.render(document.getElementById('balanced-canvas'));
+  } else {
+    redraw();
+  }
+});
+
+// --- User-defined sofa restart ---
+document.getElementById('user-defined-restart').addEventListener('click', () => {
+  const sofa = sofas[parseInt(sofaSelect.value, 10)];
+  if (!sofa.isUserDefined) return;
+  sofa.reset();
+  const infoEl = document.getElementById('user-defined-info');
+  if (infoEl) infoEl.style.display = '';
+  updateAreaLabel();
+  redraw();
+});
+
+// --- User-defined sofa mouse handling ---
+canvasTop.addEventListener('mousedown', (e) => {
+  const sofa = sofas[parseInt(sofaSelect.value, 10)];
+  if (!sofa.isUserDefined || currentView !== 'basic') return;
+  const w = containerTop.clientWidth;
+  const h = containerTop.clientHeight;
+  const transform = new TransformCentered(w, h, -0.3, 0.4, 3.85);
+  sofa.onMouseDown(e, canvasTop, transform);
+  redraw();
+});
+
+canvasTop.addEventListener('mousemove', (e) => {
+  const sofa = sofas[parseInt(sofaSelect.value, 10)];
+  if (!sofa.isUserDefined || currentView !== 'basic') return;
+  if (sofa.getState() !== 'dragging') return;
+  const w = containerTop.clientWidth;
+  const h = containerTop.clientHeight;
+  const transform = new TransformCentered(w, h, -0.3, 0.4, 3.85);
+  sofa.onMouseMove(e, canvasTop, transform);
+  if (sofa.getState() === 'complete') {
+    const infoEl = document.getElementById('user-defined-info');
+    if (infoEl) infoEl.style.display = 'none';
+    updateAreaLabel();
+  }
+  redraw();
+});
+
+canvasTop.addEventListener('mouseup', (e) => {
+  const sofa = sofas[parseInt(sofaSelect.value, 10)];
+  if (!sofa.isUserDefined || currentView !== 'basic') return;
+  if (sofa.getState() !== 'dragging') return;
+  const w = containerTop.clientWidth;
+  const h = containerTop.clientHeight;
+  const transform = new TransformCentered(w, h, -0.3, 0.4, 3.85);
+  sofa.onMouseUp(e, canvasTop, transform);
+  if (sofa.getState() === 'complete') {
+    const infoEl = document.getElementById('user-defined-info');
+    if (infoEl) infoEl.style.display = 'none';
+    updateAreaLabel();
+  }
+  redraw();
 });
 
 window.addEventListener('resize', () => {
