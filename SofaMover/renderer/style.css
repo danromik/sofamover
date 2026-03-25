@@ -49,7 +49,7 @@ body {
 
 /* Sidebar */
 #sidebar {
-  width: 200px;
+  width: 230px;
   background: #111;
   border-right: 1px solid #333;
   padding: 12px;
@@ -236,4 +236,74 @@ body {
 #position-slider {
   flex: 1;
   min-width: 200px;
+}
+
+/* Balanced Polygons controls */
+
+#n-slider {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.n-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  justify-content: center;
+}
+
+.n-btn {
+  background: #333;
+  border: 1px solid #555;
+  color: #ccc;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.n-btn:hover {
+  background: #444;
+}
+
+#n-value {
+  font-size: 16px;
+  font-weight: bold;
+  min-width: 24px;
+  text-align: center;
+}
+
+.action-btn {
+  background: #333;
+  border: 1px solid #555;
+  color: #ccc;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.action-btn:hover {
+  background: #444;
+}
+
+#balancing-iters {
+  background: #333;
+  border: 1px solid #555;
+  color: #ccc;
+  padding: 4px 8px;
+  font-size: 13px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+#balanced-canvas-container {
+  flex: 1;
+  position: relative;
 }

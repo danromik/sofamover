@@ -467,6 +467,10 @@ document.getElementById('faster-btn').addEventListener('click', () => {
 
 const visibilitySection = document.getElementById('visibility-section');
 const contactsSection = document.getElementById('contacts-section');
+const balancedSection = document.getElementById('balanced-section');
+const sofaSection = sofaSelect.closest('.sidebar-section');
+const perspectiveSection = document.querySelector('input[name="perspective"]').closest('.sidebar-section');
+const bottomBar = document.getElementById('bottom-bar');
 
 function switchView(view) {
   currentView = view;
@@ -479,10 +483,27 @@ function switchView(view) {
   // Toggle view containers
   document.getElementById('basic-view').style.display = view === 'basic' ? '' : 'none';
   document.getElementById('three-view').style.display = view === '3d' ? '' : 'none';
+  document.getElementById('balanced-view').style.display = view === 'balanced' ? '' : 'none';
 
-  // Sidebar visibility
-  visibilitySection.style.display = view === '3d' ? 'none' : '';
-  if (view === '3d') {
+  // Sidebar sections: show/hide based on view
+  const isBalanced = view === 'balanced';
+  sofaSection.style.display = isBalanced ? 'none' : '';
+  perspectiveSection.style.display = isBalanced ? 'none' : '';
+  if (isBalanced) {
+    radiusSection.style.display = 'none';
+  } else {
+    updateRadiusUI();
+  }
+  visibilitySection.style.display = (view === '3d' || isBalanced) ? 'none' : '';
+  balancedSection.style.display = isBalanced ? '' : 'none';
+
+  // Right sidebar and bottom bar
+  rightSidebar.style.display = isBalanced ? 'none' : '';
+  bottomBar.style.display = isBalanced ? 'none' : '';
+
+  if (isBalanced) {
+    contactsSection.style.display = 'none';
+  } else if (view === '3d') {
     contactsSection.style.display = 'none';
   } else {
     contactsSection.style.display = showContacts ? '' : 'none';
@@ -497,9 +518,91 @@ function switchView(view) {
     redraw();
   } else {
     ThreeView.setActive(false);
-    resizeAndRedraw();
+    if (!isBalanced) stopBalancingPlay();
+    if (isBalanced) {
+      requestAnimationFrame(() => {
+        BalancedPolygons.render(document.getElementById('balanced-canvas'));
+        updateBalancedUI();
+      });
+    } else {
+      resizeAndRedraw();
+    }
   }
 }
+
+// --- Balanced Polygons controls ---
+
+const nSlider = document.getElementById('n-slider');
+
+function updateBalancedUI() {
+  const n = BalancedPolygons.getN();
+  document.getElementById('n-value').textContent = n;
+  nSlider.value = n;
+  document.getElementById('iteration-count').textContent = BalancedPolygons.getIterationCount();
+  document.getElementById('balanced-area').textContent = BalancedPolygons.getArea().toFixed(10);
+}
+
+function setBalancedN(n) {
+  stopBalancingPlay();
+  BalancedPolygons.setN(n);
+  document.getElementById('iter-timing').textContent = '—';
+  BalancedPolygons.render(document.getElementById('balanced-canvas'));
+  updateBalancedUI();
+}
+
+nSlider.addEventListener('input', () => setBalancedN(parseInt(nSlider.value, 10)));
+document.getElementById('n-minus').addEventListener('click', () => setBalancedN(Math.max(3, BalancedPolygons.getN() - 1)));
+document.getElementById('n-plus').addEventListener('click', () => setBalancedN(Math.min(100, BalancedPolygons.getN() + 1)));
+
+function doBalancing() {
+  const iters = parseInt(document.getElementById('balancing-iters').value, 10);
+  const t0 = performance.now();
+  for (let i = 0; i < iters; i++) {
+    BalancedPolygons.applyBalancing();
+  }
+  const elapsed = performance.now() - t0;
+  const msPerIter = elapsed / iters;
+  document.getElementById('iter-timing').textContent =
+    msPerIter >= 1 ? msPerIter.toFixed(1) + ' ms' : (msPerIter * 1000).toFixed(0) + ' μs';
+  BalancedPolygons.render(document.getElementById('balanced-canvas'));
+  updateBalancedUI();
+}
+
+let balancingPlaying = false;
+let balancingRAF = null;
+const balancingPlayBtn = document.getElementById('balancing-play');
+
+function balancingLoop() {
+  if (!balancingPlaying) return;
+  doBalancing();
+  balancingRAF = requestAnimationFrame(balancingLoop);
+}
+
+function toggleBalancingPlay() {
+  balancingPlaying = !balancingPlaying;
+  balancingPlayBtn.innerHTML = balancingPlaying ? '&#9646;&#9646;' : '&#9654;';
+  if (balancingPlaying) {
+    balancingRAF = requestAnimationFrame(balancingLoop);
+  } else if (balancingRAF) {
+    cancelAnimationFrame(balancingRAF);
+    balancingRAF = null;
+  }
+}
+
+function stopBalancingPlay() {
+  if (balancingPlaying) toggleBalancingPlay();
+}
+
+document.getElementById('apply-balancing').addEventListener('click', doBalancing);
+balancingPlayBtn.addEventListener('click', toggleBalancingPlay);
+
+document.getElementById('balanced-reset').addEventListener('click', () => {
+  stopBalancingPlay();
+  BalancedPolygons.reset();
+  document.getElementById('iter-timing').textContent = '—';
+  BalancedPolygons.render(document.getElementById('balanced-canvas'));
+  updateBalancedUI();
+});
 
 document.querySelectorAll('#tab-bar .tab').forEach(btn => {
   btn.addEventListener('click', () => switchView(btn.dataset.view));
@@ -541,9 +644,13 @@ document.addEventListener('keydown', (e) => {
     setSliderPos(target * SLIDER_MAX);
   } else if (e.code === 'Space') {
     e.preventDefault();
-    scrollVelocity = 0;
-    scrollAnimating = false;
-    togglePlay();
+    if (currentView === 'balanced') {
+      doBalancing();
+    } else {
+      scrollVelocity = 0;
+      scrollAnimating = false;
+      togglePlay();
+    }
   } else if (e.key === 's' || e.key === 'S') {
     sofaSelect.value = (parseInt(sofaSelect.value, 10) + 1) % sofas.length;
     updateRadiusUI();
@@ -619,6 +726,8 @@ document.querySelectorAll('input[name="perspective"]').forEach(radio => {
 window.addEventListener('resize', () => {
   if (currentView === '3d') {
     ThreeView.resize();
+  } else if (currentView === 'balanced') {
+    BalancedPolygons.render(document.getElementById('balanced-canvas'));
   } else {
     resizeCanvases();
   }

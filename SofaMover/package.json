@@ -10,5 +10,9 @@
   "license": "MIT",
   "devDependencies": {
     "electron": "^41.0.3"
+  },
+  "dependencies": {
+    "js-clipper": "^1.0.1",
+    "polygon-clipping": "^0.15.7"
   }
 }

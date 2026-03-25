@@ -11,7 +11,7 @@ This project is by Dan Romik, a mathematician researching the moving sofa proble
 - `resources/moving-sofa-code.m` — Extracted Mathematica code from the notebook (useful reference for sofa shape definitions and rotation paths)
 
 ### SofaMover app (`SofaMover/`)
-Electron desktop app for animating moving sofa shapes. Two view tabs: Basic View (2D canvas) and 3D View (Three.js WebGL).
+Electron desktop app for visualizing moving sofa shapes. Three view tabs: 2D View (canvas), 3D View (Three.js WebGL), and Balanced Polygons (iterative sofa optimization).
 ```
 SofaMover/
   package.json, main.js          — Electron setup
@@ -21,9 +21,11 @@ SofaMover/
     hallway.js                   — Coordinate transform (Transform class) + L-shaped hallway drawing (2D)
     sofa-math.js                 — Shared math: rotation paths x1-x6, contact paths A/B/C/D, movement transform, eased time reparametrization
     three-view.js                — 3D View: dual Three.js viewports, extruded hallway/sofa meshes, orbit controls
+    balanced-polygons.js         — Balanced Polygons: Gibbs (2014) iterative sofa optimization via L-shape intersections
     lib/
       three.min.js               — Three.js r128 (global UMD build)
       OrbitControls.js            — Three.js orbit camera controls
+      clipper.js                 — Angus Johnson's Clipper library for polygon boolean operations
     sofas/
       unit-square.js             — Unit square (translation only)
       semicircle.js              — Semicircle sofa (rotation only, x(t)=0)
@@ -83,7 +85,7 @@ The unit square has no rotation, so T1/T2 don't apply. Its motion is 2 eased sub
 
 ## Visual style
 
-### Basic View (2D)
+### 2D View
 - Black background, gray hallway interior, white hallway walls
 - Hallway arms extend to canvas edges
 - Viewport shifted so outer corner (1,1) is near top-right of canvas
@@ -98,10 +100,32 @@ The unit square has no rotation, so T1/T2 don't apply. Its motion is 2 eased sub
 - Coordinate mapping: math (x, y) → Three.js (x, h, -y) where h is height
 
 ## Tabbed UI
-- **Basic View**: 2D canvas rendering with perspective options (Hallway/Sofa/Both split-screen)
+- **2D View**: 2D canvas rendering with perspective options (Hallway/Sofa/Both split-screen)
 - **3D View**: Three.js rendering with same perspective options mapped to dual 3D viewports
-- Shared across tabs: sofa selector, area label, radius slider, perspective radios, bottom slider with play/pause/speed
+- **Balanced Polygons**: Iterative sofa optimization (see below)
+- Shared across 2D/3D tabs: sofa selector, area label, radius slider, perspective radios, bottom slider with play/pause/speed
 - Hidden in 3D View: visibility checkboxes, contact points legend
+- Balanced Polygons tab has its own sidebar controls (N, iterations, balancing buttons)
+
+## Balanced Polygons view
+
+Implements the approach from Gibbs (2014) for numerically approximating the optimal moving sofa shape. The sofa polygon is computed as the intersection of N+1 rotated and translated L-shaped hallways, initialized along the Hammersley rotation path with r = 2/π.
+
+### Algorithm
+- **Initialization**: N+1 hallways at evenly spaced angles α_k = kπ/(2N), with inner corner positions along the Hammersley rotation path: P_k = (r(cos(2α_k) − 1), r·sin(2α_k))
+- **Polygon computation**: Iterative polygon intersection using Clipper library (integer-based, robust). Each L-shape is built as a 6-vertex polygon with arms of length 3.
+- **Balancing (gradient ascent)**: For each movable hallway k (1..N−1), compute numerical gradient ∂A/∂x and ∂A/∂y via finite differences, then step in the gradient direction. Step size = 0.02, gradient epsilon = 1e-5.
+
+### Controls
+- **N slider** (3–100): number of hallway steps, with +/− buttons
+- **Iterations per click**: 1, 10, 100, 1000, or 10000
+- **Apply Balancing**: run iterations (also triggered by Space key)
+- **Play/Pause**: continuously apply balancing with live polygon updates
+- **Reset**: return to Hammersley initialization
+
+### Key files
+- `balanced-polygons.js` — state, polygon computation (Clipper), gradient ascent balancing, rendering
+- `lib/clipper.js` — Angus Johnson's Clipper v6.1.3a for polygon boolean intersection
 
 ## Todo
 1. **Better UI**: Allow user to drag the sofa shape directly instead of using the slider

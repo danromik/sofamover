@@ -14,8 +14,9 @@ The app includes animations of several known sofa shapes:
 
 ## Features
 
-- **2D Basic View** with hallway, sofa, and contact point perspectives
+- **2D View** with hallway, sofa, and contact point perspectives
 - **3D View** with extruded hallway and sofa meshes, dual viewports (hallway and sofa reference frames), and orbit camera controls
+- **Balanced Polygons** — iterative optimization view implementing Gibbs's (2014) approach: start from a Hammersley sofa approximation (intersection of N rotated L-shaped hallways) and apply gradient ascent to maximize the area, converging toward the Gerver sofa
 - Animated sofa movement with play/pause, speed control, and a scrubbing slider
 - Switchable perspectives: hallway frame, sofa frame, or split-screen
 

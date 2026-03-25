@@ -8,8 +8,9 @@
 </head>
 <body>
   <div id="tab-bar">
-    <button class="tab active" data-view="basic">Basic View</button>
+    <button class="tab active" data-view="basic">2D View</button>
     <button class="tab" data-view="3d">3D View</button>
+    <button class="tab" data-view="balanced">Balanced Polygons</button>
   </div>
 
   <div id="main-area">
@@ -52,6 +53,43 @@
           <input type="checkbox" id="show-rot-path"> Show Rotation Path
         </label>
       </div>
+
+      <div id="balanced-section" style="display:none">
+        <div class="sidebar-section">
+          <div class="sidebar-title">N (hallway steps): <span id="n-value">4</span></div>
+          <input type="range" id="n-slider" min="3" max="100" value="4" step="1">
+          <div class="n-control">
+            <button id="n-minus" class="n-btn">&minus;</button>
+            <button id="n-plus" class="n-btn">+</button>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-title">Iterations per click</div>
+          <select id="balancing-iters">
+            <option value="1">1</option>
+            <option value="10" selected>10</option>
+            <option value="100">100</option>
+            <option value="1000">1000</option>
+            <option value="10000">10000</option>
+          </select>
+        </div>
+        <div class="sidebar-section">
+          <button id="apply-balancing" class="action-btn">Apply Balancing</button>
+        </div>
+        <div class="sidebar-section">
+          <button id="balancing-play" class="action-btn" style="font-size:16px; padding:6px 12px;">&#9654;</button>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-title">Iterations: <span id="iteration-count">0</span></div>
+          <div class="sidebar-title">Time/iter: <span id="iter-timing">—</span></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-title">Area: <span id="balanced-area"></span></div>
+        </div>
+        <div class="sidebar-section">
+          <button id="balanced-reset" class="action-btn">Reset</button>
+        </div>
+      </div>
     </div>
 
     <div id="canvas-area">
@@ -72,6 +110,11 @@
         <div id="three-divider"></div>
         <div id="three-container-bottom" class="canvas-container">
           <canvas id="three-canvas-bottom"></canvas>
+        </div>
+      </div>
+      <div id="balanced-view" class="view-content" style="display:none">
+        <div id="balanced-canvas-container" class="canvas-container">
+          <canvas id="balanced-canvas"></canvas>
         </div>
       </div>
     </div>
@@ -126,6 +169,8 @@
   <script src="sofas/romik.js"></script>
   <script src="sofas/romik-pre.js"></script>
   <script src="three-view.js"></script>
+  <script src="lib/clipper.js"></script>
+  <script src="balanced-polygons.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

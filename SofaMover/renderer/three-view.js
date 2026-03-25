@@ -125,7 +125,7 @@ const ThreeView = (() => {
 
     // Outer walls (math): (-L,1) -> (1,1) -> (1,-L)
     // Three.js (x,z):    (-L,-1) -> (1,-1) -> (1,L)
-    addWall(-L, -1, 1, -1, 0, -1); // horizontal outer wall, outward = -z
+    addWall(-L, -1, 1 + wallThickness, -1, 0, -1); // horizontal outer wall, extended to cover corner gap
     addWall(1, -1, 1, L, 1, 0);    // vertical outer wall, outward = +x
 
     return group;
