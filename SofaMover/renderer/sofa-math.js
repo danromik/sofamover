@@ -214,6 +214,12 @@ const SofaMath = (() => {
   function sofaStroke() { return `rgba(${sofaColorR}, ${sofaColorG}, ${sofaColorB}, 0.9)`; }
   function sofaHex() { return '#' + [sofaColorR, sofaColorG, sofaColorB].map(c => c.toString(16).padStart(2, '0')).join(''); }
 
+  // --- Background color ---
+  let bgColorHex = '#000000';
+
+  function setBgColor(hex) { bgColorHex = hex; }
+  function bgColor() { return bgColorHex; }
+
   // --- Draw a polygon from math-coord points ---
   function drawPolygon(ctx, transform, points) {
     ctx.beginPath();
@@ -249,6 +255,7 @@ const SofaMath = (() => {
     movementTransform, threePhaseEased, smoothstep, getPhaseBoundaries,
     T1, T2, ENTER_DIST, TRANS_EPS,
     setSofaColor, sofaFill, sofaStroke, sofaHex,
+    setBgColor, bgColor,
     drawPolygon, polygonArea
   };
 })();

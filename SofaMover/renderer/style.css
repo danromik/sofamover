@@ -57,6 +57,38 @@ body {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  position: relative;
+}
+
+#settings-panel {
+  display: none;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1a1a1a;
+  border-top: 1px solid #444;
+  padding: 12px;
+  z-index: 10;
+}
+
+#settings-panel.open {
+  display: block;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.settings-header button:hover {
+  color: #fff;
+}
+
+#settings-btn:hover {
+  color: #fff;
 }
 
 .sidebar-section {

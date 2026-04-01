@@ -44,6 +44,44 @@ class Transform {
   }
 }
 
+// Transform for S-hallway perspective: fits both corners in view
+class TransformSHallway {
+  constructor(canvasWidth, canvasHeight, V) {
+    this.canvasWidth = canvasWidth;
+    this.canvasHeight = canvasHeight;
+
+    const margin = 30;
+    // Need to show from x ~ -3 to x ~ 4, y ~ -V to y ~ 1
+    const xRange = 7;
+    const yRange = V + 1.5;
+    const scaleX = (canvasWidth - 2 * margin) / xRange;
+    const scaleY = (canvasHeight - 2 * margin) / yRange;
+    this.scale = Math.min(scaleX, scaleY);
+
+    // Center the S-hallway in the canvas
+    const centerX = 0.5;
+    const centerY = (-V + 1) / 2;
+    this.mathXMin = centerX - canvasWidth / (2 * this.scale);
+    this.mathXMax = centerX + canvasWidth / (2 * this.scale);
+    this.mathYMin = centerY - canvasHeight / (2 * this.scale);
+    this.mathYMax = centerY + canvasHeight / (2 * this.scale);
+
+    this.offsetX = 0;
+    this.offsetY = 0;
+  }
+
+  toCanvas(mx, my) {
+    return {
+      x: this.offsetX + (mx - this.mathXMin) * this.scale,
+      y: this.offsetY + (this.mathYMax - my) * this.scale
+    };
+  }
+
+  toPixels(mathDist) {
+    return mathDist * this.scale;
+  }
+}
+
 // Transform for sofa perspective: centered on a given math point
 class TransformCentered {
   constructor(canvasWidth, canvasHeight, centerX, centerY, mathRange) {
@@ -88,7 +126,7 @@ function drawHallway(ctx, transform) {
   const w = transform.canvasWidth;
   const h = transform.canvasHeight;
 
-  ctx.fillStyle = '#000000';
+  ctx.fillStyle = SofaMath.bgColor();
   ctx.fillRect(0, 0, w, h);
 
   const hLeft = transform.toCanvas(transform.mathXMin, 1);
@@ -134,7 +172,7 @@ function drawHallwayRotated(ctx, transform, angle, rotPathPoint, dx, dy) {
   const w = transform.canvasWidth;
   const h = transform.canvasHeight;
 
-  ctx.fillStyle = '#000000';
+  ctx.fillStyle = SofaMath.bgColor();
   ctx.fillRect(0, 0, w, h);
 
   const cosA = Math.cos(angle);

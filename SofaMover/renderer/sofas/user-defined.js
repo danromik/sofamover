@@ -118,15 +118,92 @@ const UserDefined = (() => {
     completePath();
   }
 
+  // --- Catmull-Rom spline smoothing ---
+
+  function subsampleByArcLength(points, arcLengths, numControl) {
+    const totalArc = arcLengths[arcLengths.length - 1];
+    const ctrl = [];
+    const ctrlArc = [];
+    for (let i = 0; i < numControl; i++) {
+      const targetArc = (i / (numControl - 1)) * totalArc;
+      let j = 0;
+      while (j < arcLengths.length - 2 && arcLengths[j + 1] < targetArc) j++;
+      const span = arcLengths[j + 1] - arcLengths[j];
+      const frac = span > 0 ? (targetArc - arcLengths[j]) / span : 0;
+      const p1 = points[j], p2 = points[Math.min(j + 1, points.length - 1)];
+      ctrl.push({ x: p1.x + frac * (p2.x - p1.x), y: p1.y + frac * (p2.y - p1.y) });
+      ctrlArc.push(targetArc);
+    }
+    return { points: ctrl, arcLengths: ctrlArc };
+  }
+
+  function catmullRomSmooth(points, arcLengths, numOutput) {
+    if (points.length < 3) return { points: points.slice(), arcLengths: arcLengths.slice() };
+
+    const totalArc = arcLengths[arcLengths.length - 1];
+    const outPoints = [];
+
+    for (let i = 0; i < numOutput; i++) {
+      const targetArc = (i / (numOutput - 1)) * totalArc;
+
+      // Find segment: arcLengths[j] <= targetArc < arcLengths[j+1]
+      let j = 0;
+      while (j < arcLengths.length - 2 && arcLengths[j + 1] < targetArc) j++;
+      const span = arcLengths[j + 1] - arcLengths[j];
+      const t = span > 0 ? (targetArc - arcLengths[j]) / span : 0;
+
+      // Four control points with endpoint clamping
+      const p0 = points[Math.max(j - 1, 0)];
+      const p1 = points[j];
+      const p2 = points[Math.min(j + 1, points.length - 1)];
+      const p3 = points[Math.min(j + 2, points.length - 1)];
+
+      // Catmull-Rom cubic
+      const t2 = t * t, t3 = t2 * t;
+      outPoints.push({
+        x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t +
+            (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+            (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+        y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t +
+            (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+            (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3)
+      });
+    }
+
+    // Recompute arc lengths from smoothed points
+    const outArcLengths = [0];
+    for (let i = 1; i < outPoints.length; i++) {
+      const dx = outPoints[i].x - outPoints[i - 1].x;
+      const dy = outPoints[i].y - outPoints[i - 1].y;
+      outArcLengths.push(outArcLengths[i - 1] + Math.sqrt(dx * dx + dy * dy));
+    }
+
+    return { points: outPoints, arcLengths: outArcLengths };
+  }
+
   // --- Path completion and polygon computation ---
 
   function completePath() {
     state = 'complete';
 
+    // Reduce raw mouse points to fewer control points to filter jitter,
+    // then Catmull-Rom interpolate through those for a smooth path
+    const NUM_CONTROL = 25;
+    const numSmooth = Math.max(200, pathPoints.length * 3);
+    let ctrl;
+    if (pathPoints.length > NUM_CONTROL) {
+      ctrl = subsampleByArcLength(pathPoints, cumArcLengths, NUM_CONTROL);
+    } else {
+      ctrl = { points: pathPoints, arcLengths: cumArcLengths };
+    }
+    const smoothed = catmullRomSmooth(ctrl.points, ctrl.arcLengths, numSmooth);
+    pathPoints = smoothed.points;
+    cumArcLengths = smoothed.arcLengths;
+
     const totalArc = cumArcLengths[cumArcLengths.length - 1];
     assignedAngles = cumArcLengths.map(l => (l / totalArc) * Math.PI / 2);
 
-    // Subsample if too many points
+    // Subsample for polygon computation
     let samplePoints, sampleAngles;
     if (pathPoints.length > MAX_HALLWAYS) {
       samplePoints = [];
@@ -296,7 +373,7 @@ const UserDefined = (() => {
       const angle = estimateAngle(pathPoints.length - 1);
       drawHallwayRotated(ctx, transform, angle, cur, 0, 0);
     } else {
-      ctx.fillStyle = '#000';
+      ctx.fillStyle = SofaMath.bgColor();
       ctx.fillRect(0, 0, transform.canvasWidth, transform.canvasHeight);
     }
 

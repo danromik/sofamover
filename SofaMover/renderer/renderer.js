@@ -4,7 +4,7 @@
  * Includes trackpad scroll with inertia/bounce, keyboard shortcuts, play/pause.
  */
 
-const sofas = [UnitSquare, Semicircle, Hammersley, HammersleyGeneralized, Gerver, Romik, RomikPre, UserDefined];
+const sofas = [null, UnitSquare, Semicircle, Hammersley, HammersleyGeneralized, Gerver, Romik, RomikPre, RomikDouble, UserDefined];
 
 const canvasTop = document.getElementById('canvas-top');
 const ctxTop = canvasTop.getContext('2d');
@@ -32,6 +32,7 @@ let currentView = 'basic'; // 'basic' | '3d'
 let currentPerspective = 'hallway';
 let showContacts = false;
 let showSofa = true;
+let showHallway = true;
 let showRotPath = false;
 let showTickMarks = false;
 const angleLabel = document.getElementById('angle-label');
@@ -43,7 +44,7 @@ const SLIDER_MAX = parseInt(slider.max, 10);
 sofas.forEach((sofa, i) => {
   const opt = document.createElement('option');
   opt.value = i;
-  opt.textContent = sofa.name;
+  opt.textContent = sofa ? sofa.name : '(none)';
   sofaSelect.appendChild(opt);
 });
 
@@ -51,7 +52,9 @@ const sofaAreaLabel = document.getElementById('sofa-area');
 
 function updateAreaLabel() {
   const sofa = sofas[parseInt(sofaSelect.value, 10)];
-  if (sofa.getArea) {
+  if (!sofa) {
+    sofaAreaLabel.textContent = '';
+  } else if (sofa.getArea) {
     sofaAreaLabel.textContent = 'Sofa area: ' + sofa.getArea().toFixed(6);
   } else {
     sofaAreaLabel.textContent = 'Sofa area: (unknown)';
@@ -60,7 +63,7 @@ function updateAreaLabel() {
 
 function updateRadiusUI() {
   const sofa = sofas[parseInt(sofaSelect.value, 10)];
-  if (sofa.hasRadiusParam) {
+  if (sofa && sofa.hasRadiusParam) {
     radiusSection.style.display = '';
     const r = sofa.minRadius + (parseInt(radiusSlider.value, 10) / 1000) * (sofa.maxRadius - sofa.minRadius);
     sofa.setRadius(r);
@@ -151,7 +154,7 @@ function drawContactPointsHallway(ctx, transform, sofa, t) {
   if (!sofa.getContactPoints) return;
   const pts = sofa.getContactPoints(t);
   const phase = sofa.getPhase(t);
-  const rp = sofa.getRotPathPoint(phase.angle);
+  const rp = phase.rotPathPoint || sofa.getRotPathPoint(phase.angle);
   const canvasPoints = pts.map(p => {
     const mp = SofaMath.movementTransform(p.x, p.y, phase.angle, rp, phase.dx, phase.dy);
     const cp = transform.toCanvas(mp.x, mp.y);
@@ -177,11 +180,11 @@ function drawRotationPathHallway(ctx, transform, sofa, t) {
   if (!ROT_PATH_SOFAS.has(sofa.name)) return;
   const phase = sofa.getPhase(t);
   const piHalf = Math.PI / 2;
+  const rp = phase.rotPathPoint || sofa.getRotPathPoint(phase.angle);
   ctx.beginPath();
   for (let i = 0; i <= ROT_PATH_STEPS; i++) {
     const a = (i / ROT_PATH_STEPS) * piHalf;
     const p = sofa.getRotPathPoint(a);
-    const rp = sofa.getRotPathPoint(phase.angle);
     const mp = SofaMath.movementTransform(p.x, p.y, phase.angle, rp, phase.dx, phase.dy);
     const cp = transform.toCanvas(mp.x, mp.y);
     if (i === 0) ctx.moveTo(cp.x, cp.y);
@@ -217,7 +220,7 @@ function drawTickMarksHallway(ctx, transform, sofa, t) {
   const marks = sofa.getTickMarks();
   const len = sofa.tickMarkLength;
   const phase = sofa.getPhase(t);
-  const rp = sofa.getRotPathPoint(phase.angle);
+  const rp = phase.rotPathPoint || sofa.getRotPathPoint(phase.angle);
 
   ctx.beginPath();
   for (const m of marks) {
@@ -257,10 +260,22 @@ function drawTickMarksCanonical(ctx, transform, sofa) {
 function drawHallwayPerspective(ctx, container, sofa, t) {
   const w = container.clientWidth;
   const h = container.clientHeight;
-  const transform = new Transform(w, h);
+  const transform = sofa && sofa.hallwayType === 's-hallway'
+    ? new TransformSHallway(w, h, sofa.V)
+    : new Transform(w, h);
 
   ctx.clearRect(0, 0, w, h);
-  drawHallway(ctx, transform);
+  if (showHallway) {
+    if (sofa && sofa.drawHallway) {
+      sofa.drawHallway(ctx, transform);
+    } else {
+      drawHallway(ctx, transform);
+    }
+  } else {
+    ctx.fillStyle = SofaMath.bgColor();
+    ctx.fillRect(0, 0, w, h);
+  }
+  if (!sofa) return;
   if (showRotPath) drawRotationPathHallway(ctx, transform, sofa, t);
   if (showSofa) sofa.draw(ctx, transform, t);
   if (showTickMarks) drawTickMarksHallway(ctx, transform, sofa, t);
@@ -273,6 +288,11 @@ function drawSofaPerspective(ctx, container, sofa, t) {
 
   const transform = new TransformCentered(w, h, -0.3, 0.4, 3.85);
 
+  if (!sofa) {
+    ctx.clearRect(0, 0, w, h);
+    return;
+  }
+
   // User-defined sofa handles its own drawing in idle/dragging states
   if (sofa.isUserDefined && sofa.getState() !== 'complete') {
     ctx.clearRect(0, 0, w, h);
@@ -280,11 +300,32 @@ function drawSofaPerspective(ctx, container, sofa, t) {
     return;
   }
 
+  // Sofas with custom sofa-perspective drawing (e.g. S-hallway)
+  if (!sofa.isUserDefined && sofa.drawSofaPerspective) {
+    ctx.clearRect(0, 0, w, h);
+    if (showHallway) {
+      sofa.drawSofaPerspective(ctx, transform, t);
+    } else {
+      ctx.fillStyle = SofaMath.bgColor();
+      ctx.fillRect(0, 0, w, h);
+    }
+    if (showRotPath) drawRotationPathCanonical(ctx, transform, sofa);
+    if (showSofa) drawSofaCanonical(ctx, transform, sofa);
+    if (showTickMarks) drawTickMarksCanonical(ctx, transform, sofa);
+    if (showContacts) drawContactPointsCanonical(ctx, transform, sofa, t);
+    return;
+  }
+
   const phase = sofa.getPhase(t);
-  const rp = sofa.getRotPathPoint(phase.angle);
+  const rp = phase.rotPathPoint || sofa.getRotPathPoint(phase.angle);
 
   ctx.clearRect(0, 0, w, h);
-  drawHallwayRotated(ctx, transform, phase.angle, rp, phase.dx, phase.dy);
+  if (showHallway) {
+    drawHallwayRotated(ctx, transform, phase.angle, rp, phase.dx, phase.dy);
+  } else {
+    ctx.fillStyle = SofaMath.bgColor();
+    ctx.fillRect(0, 0, w, h);
+  }
   if (showRotPath) drawRotationPathCanonical(ctx, transform, sofa);
   if (showSofa) drawSofaCanonical(ctx, transform, sofa);
   if (showTickMarks) drawTickMarksCanonical(ctx, transform, sofa);
@@ -293,7 +334,7 @@ function drawSofaPerspective(ctx, container, sofa, t) {
 
 function buildPhasesUI(sofa) {
   phasesList.innerHTML = '';
-  if (!sofa.phases || sofa.phases.length === 0) {
+  if (!sofa || !sofa.phases || sofa.phases.length === 0) {
     phasesSection.style.display = 'none';
     return;
   }
@@ -326,7 +367,7 @@ function redraw() {
   const t = parseInt(slider.value, 10) / SLIDER_MAX;
 
   if (currentView === '3d') {
-    ThreeView.update(sofa, t);
+    if (sofa) ThreeView.update(sofa, t);
   } else {
     if (currentPerspective === 'hallway') {
       drawHallwayPerspective(ctxTop, containerTop, sofa, t);
@@ -340,10 +381,12 @@ function redraw() {
     }
   }
 
-  updatePhaseHighlight(sofa, t);
+  if (sofa) updatePhaseHighlight(sofa, t);
 
   // Update angle label (hide for unit square, and hide in 3D view)
-  if (currentView !== '3d' && sofa.isUserDefined && sofa.getState() === 'dragging') {
+  if (!sofa) {
+    angleLabel.style.display = 'none';
+  } else if (currentView !== '3d' && sofa.isUserDefined && sofa.getState() === 'dragging') {
     const deg = sofa.getCurrentAngle() * 180 / Math.PI;
     const degrees = deg.toFixed(1);
     const padded = deg < 10 ? '\u2007' + degrees : degrees;
@@ -416,7 +459,7 @@ function scrollAnimLoop() {
 canvasArea.addEventListener('wheel', (e) => {
   e.preventDefault();
   const sofa = sofas[parseInt(sofaSelect.value, 10)];
-  if (sofa.isUserDefined && sofa.getState() === 'dragging') return;
+  if (sofa && sofa.isUserDefined && sofa.getState() === 'dragging') return;
   // Stop play if scrolling
   if (isPlaying) togglePlay();
 
@@ -529,8 +572,9 @@ function switchView(view) {
     ThreeView.init();
     ThreeView.setActive(true);
     ThreeView.setPerspective(currentPerspective);
+    ThreeView.setHallwayVisible(showHallway);
     const sofa = sofas[parseInt(sofaSelect.value, 10)];
-    ThreeView.rebuildSofa(sofa);
+    if (sofa) ThreeView.rebuildSofa(sofa);
     redraw();
   } else {
     ThreeView.setActive(false);
@@ -636,6 +680,7 @@ document.addEventListener('keydown', (e) => {
     scrollVelocity = 0;
     scrollAnimating = false;
     const sofa = sofas[parseInt(sofaSelect.value, 10)];
+    if (!sofa) return;
     const t = parseInt(slider.value, 10) / SLIDER_MAX;
     const boundaries = sofa.getPhaseBoundaries();
     // Find largest boundary strictly less than current t
@@ -650,6 +695,7 @@ document.addEventListener('keydown', (e) => {
     scrollVelocity = 0;
     scrollAnimating = false;
     const sofa = sofas[parseInt(sofaSelect.value, 10)];
+    if (!sofa) return;
     const t = parseInt(slider.value, 10) / SLIDER_MAX;
     const boundaries = sofa.getPhaseBoundaries();
     // Find smallest boundary strictly greater than current t
@@ -667,12 +713,17 @@ document.addEventListener('keydown', (e) => {
       scrollAnimating = false;
       togglePlay();
     }
+  } else if (e.code === 'KeyH' && e.metaKey && e.shiftKey) {
+    e.preventDefault();
+    showHallway = !showHallway;
+    if (currentView === '3d') ThreeView.setHallwayVisible(showHallway);
+    redraw();
   } else if (e.key === 's' || e.key === 'S') {
     sofaSelect.value = (parseInt(sofaSelect.value, 10) + 1) % sofas.length;
     updateRadiusUI();
     const sofa = sofas[parseInt(sofaSelect.value, 10)];
     buildPhasesUI(sofa);
-    if (currentView === '3d') ThreeView.rebuildSofa(sofa);
+    if (sofa && currentView === '3d') ThreeView.rebuildSofa(sofa);
     redraw();
   } else if (e.key === '-') {
     playDurationMs = Math.min(playDurationMs * 1.5, 60000);
@@ -698,7 +749,7 @@ sofaSelect.addEventListener('change', () => {
 
   const infoEl = document.getElementById('user-defined-info');
   const udSection = document.getElementById('user-defined-section');
-  if (sofa.isUserDefined) {
+  if (sofa && sofa.isUserDefined) {
     // Force sofa perspective, disable other options
     currentPerspective = 'sofa';
     document.querySelectorAll('input[name="perspective"]').forEach(r => {
@@ -716,7 +767,7 @@ sofaSelect.addEventListener('change', () => {
     if (udSection) udSection.style.display = 'none';
   }
 
-  if (currentView === '3d') ThreeView.rebuildSofa(sofa);
+  if (sofa && currentView === '3d') ThreeView.rebuildSofa(sofa);
   resizeAndRedraw();
 });
 
@@ -760,10 +811,29 @@ document.querySelectorAll('input[name="perspective"]').forEach(radio => {
   });
 });
 
+// --- Settings panel ---
+document.getElementById('settings-btn').addEventListener('click', () => {
+  document.getElementById('settings-panel').classList.toggle('open');
+});
+document.getElementById('settings-close').addEventListener('click', () => {
+  document.getElementById('settings-panel').classList.remove('open');
+});
+
 // --- Sofa color picker ---
 document.getElementById('sofa-color').addEventListener('input', (e) => {
   SofaMath.setSofaColor(e.target.value);
   ThreeView.setSofaColor(e.target.value);
+  if (currentView === 'balanced') {
+    BalancedPolygons.render(document.getElementById('balanced-canvas'));
+  } else {
+    redraw();
+  }
+});
+
+// --- Background color picker ---
+document.getElementById('bg-color').addEventListener('input', (e) => {
+  SofaMath.setBgColor(e.target.value);
+  ThreeView.setBgColor(e.target.value);
   if (currentView === 'balanced') {
     BalancedPolygons.render(document.getElementById('balanced-canvas'));
   } else {

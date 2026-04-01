@@ -17,6 +17,7 @@ const ThreeView = (() => {
   let sofaVP = null;
 
   let currentSofaGeometry = null;
+  let currentHallwayType = 'l-hallway'; // track hallway type to know when to rebuild
   const sofaMaterial = new THREE.MeshStandardMaterial({
     color: 0x4285f4,
     side: THREE.DoubleSide
@@ -243,7 +244,7 @@ const ThreeView = (() => {
     if (!initialized) return;
 
     const phase = sofa.getPhase(t);
-    const rp = sofa.getRotPathPoint(phase.angle);
+    const rp = phase.rotPathPoint || sofa.getRotPathPoint(phase.angle);
 
     // Update hallway viewport: sofa moves, hallway stays fixed
     const sofaMatrix = buildMovementMatrix(phase.angle, rp, phase.dx, phase.dy);
@@ -263,7 +264,8 @@ const ThreeView = (() => {
     // Update sofa viewport: sofa at canonical position, hallway transforms around it
     sofaVP.sofaMesh.matrix.copy(layFlat);
 
-    const hallwayMatrix = buildHallwayTransformMatrix(phase.angle, rp, phase.dx, phase.dy);
+    const rp2 = phase.rotPathPoint || sofa.getRotPathPoint(phase.angle);
+    const hallwayMatrix = buildHallwayTransformMatrix(phase.angle, rp2, phase.dx, phase.dy);
     sofaVP.hallwayGroup.matrixAutoUpdate = false;
     sofaVP.hallwayGroup.matrix.copy(hallwayMatrix);
   }
@@ -284,6 +286,44 @@ const ThreeView = (() => {
 
       sofaVP.sofaMesh.geometry.dispose();
       sofaVP.sofaMesh.geometry = currentSofaGeometry;
+    }
+
+    // Rebuild hallway if type changed
+    const newHallwayType = sofa.hallwayType || 'l-hallway';
+    if (newHallwayType !== currentHallwayType) {
+      currentHallwayType = newHallwayType;
+      const newGroup = sofa.buildHallwayGroup ? sofa.buildHallwayGroup() : buildHallway();
+
+      hallwayVP.scene.remove(hallwayVP.hallwayGroup);
+      hallwayVP.hallwayGroup = newGroup;
+      hallwayVP.scene.add(newGroup);
+
+      const newGroup2 = sofa.buildHallwayGroup ? sofa.buildHallwayGroup() : buildHallway();
+      sofaVP.scene.remove(sofaVP.hallwayGroup);
+      sofaVP.hallwayGroup = newGroup2;
+      sofaVP.scene.add(newGroup2);
+
+      // Reposition cameras for the hallway type
+      if (newHallwayType === 's-hallway') {
+        // S-hallway: center between the two corners, pull camera well back
+        // Math center ~ (0.5, -1), Three.js target ~ (0.5, 0, 1)
+        const V = sofa.V || 3;
+        const targetZ = (V - 1) / 2;  // midpoint of vertical segment in Three.js z
+        hallwayVP.camera.position.set(-2, 7, targetZ + 6);
+        hallwayVP.controls.target.set(0.5, 0, targetZ);
+        hallwayVP.controls.update();
+        sofaVP.camera.position.set(-2, 7, targetZ + 6);
+        sofaVP.controls.target.set(0.5, 0, targetZ);
+        sofaVP.controls.update();
+      } else {
+        // L-hallway: default camera position
+        hallwayVP.camera.position.set(-1, 3, 3);
+        hallwayVP.controls.target.set(0, 0, 0);
+        hallwayVP.controls.update();
+        sofaVP.camera.position.set(-1, 3, 3);
+        sofaVP.controls.target.set(0, 0, 0);
+        sofaVP.controls.update();
+      }
     }
   }
 
@@ -345,5 +385,18 @@ const ThreeView = (() => {
     sofaEdgeMaterial.color.copy(color);
   }
 
-  return { init, update, rebuildSofa, resize, setActive, setPerspective, setSofaColor };
+  function setBgColor(hex) {
+    if (!initialized) return;
+    const color = new THREE.Color(hex);
+    hallwayVP.scene.background = color;
+    sofaVP.scene.background = color.clone();
+  }
+
+  function setHallwayVisible(visible) {
+    if (!initialized) return;
+    hallwayVP.hallwayGroup.visible = visible;
+    sofaVP.hallwayGroup.visible = visible;
+  }
+
+  return { init, update, rebuildSofa, resize, setActive, setPerspective, setSofaColor, setBgColor, setHallwayVisible };
 })();

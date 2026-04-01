@@ -149,8 +149,7 @@ const BalancedPolygons = (() => {
     const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Black background
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = SofaMath.bgColor();
     ctx.fillRect(0, 0, w, h);
 
     if (polygon.length < 3) return;
