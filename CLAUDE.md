@@ -18,7 +18,7 @@ SofaMover/
   renderer/
     index.html, style.css        — UI layout and styling
     renderer.js                  — Orchestration: events, canvas, redraw loop, tab switching, radius slider UI
-    hallway.js                   — Coordinate transform (Transform class) + L-shaped hallway drawing (2D)
+    hallway.js                   — Coordinate transforms (Transform, TransformSHallway, TransformCentered) + L-shaped hallway drawing (2D)
     sofa-math.js                 — Shared math: rotation paths x1-x6, contact paths A/B/C/D, movement transform, eased time reparametrization
     three-view.js                — 3D View: dual Three.js viewports, extruded hallway/sofa meshes, orbit controls
     balanced-polygons.js         — Balanced Polygons: Gibbs (2014) iterative sofa optimization via L-shape intersections
@@ -32,6 +32,9 @@ SofaMover/
       hammersley.js              — Generalized Hammersley (configurable inner radius r, default 2/pi)
       gerver.js                  — Gerver's optimal sofa (5 rotation path phases, 5 boundary segments)
       romik.js                   — Romik's ambidextrous sofa (3 rotation path phases, 10 boundary segments with reflections)
+      romik-pre.js               — Romik's sofa pre-symmetrization variant (S_x before reflection)
+      romik-double.js            — Romik's sofa navigating an S-shaped hallway with two right-angle turns (5-phase animation)
+      user-defined.js            — User-defined sofa (interactive drag-to-draw)
 ```
 
 ## Important notes
@@ -43,11 +46,16 @@ SofaMover/
 Each sofa in `sofas/` exports a global object with:
 - `name` — display name for the dropdown
 - `canonicalPoints` — array of {x, y} boundary points in canonical (sofa-centered) coordinates
-- `getPhase(t)` — returns `{angle, dx, dy}` for slider parameter t ∈ [0, 1]
+- `getPhase(t)` — returns `{angle, dx, dy}` for slider parameter t ∈ [0, 1]. May also include optional `rotPathPoint` and `phaseNum` fields.
 - `getRotPathPoint(angle)` — returns rotation path point `{x, y}` at given angle
 - `getPhaseBoundaries()` — returns array of phase boundary t-values
 - `draw(ctx, transform, t)` — draws the sofa on 2D canvas at slider parameter t
 - Optional `hasRadiusParam`, `setRadius(r)`, `getRadius()` — for sofas with a configurable parameter (e.g., Hammersley)
+- Optional `rotPathPoint` in `getPhase()` return — when present, callers use this instead of calling `getRotPathPoint(angle)`. Used by sofas where the rotation path depends on the phase (e.g., double turn).
+- Optional `drawHallway(ctx, transform)` — draws a custom hallway shape instead of the default L-hallway (e.g., S-hallway for double turn)
+- Optional `drawSofaPerspective(ctx, transform, t)` — draws hallway in the sofa-centered frame for sofas with non-standard hallway geometry
+- Optional `hallwayType` — string identifier for the hallway geometry (e.g., `'s-hallway'`). When present, the 3D view rebuilds the hallway mesh accordingly.
+- Optional `buildHallwayGroup()` — returns a THREE.Group for custom 3D hallway geometry
 
 Movement framework (from paper): at rotation angle `a`, a canonical shape point `p` is transformed to `R(-a) * (p - x(a))` where `x(a)` is the rotation path. Shared implementation in `sofa-math.js`. The 3D view reuses the same interface — `canonicalPoints` are extruded into 3D meshes, and `getPhase`/`getRotPathPoint` drive the mesh transform matrix each frame.
 
@@ -77,6 +85,22 @@ The function `threePhaseEased(t, subphaseBreakpoints)` implements this. Each sof
 | Hammersley | 1 | `[0, π/2]` |
 | Gerver | 5 | `[0, φ, θ, π/2−θ, π/2−φ, π/2]` where φ≈0.0392, θ≈0.6813 |
 | Romik | 3 | `[0, β, π/2−β, π/2]` where β≈0.2897 |
+| Romik (double turn) | custom | 5-phase animation (see below) |
+
+### Romik (double turn) — 5-phase animation
+The double turn variant uses the same Romik sofa shape but navigates an S-shaped hallway with two right-angle turns. It does NOT use `threePhaseEased`; instead, `romik-double.js` implements its own `getPhase(t)` with 5 phases:
+
+| Phase | t range | Description |
+|-------|---------|-------------|
+| 1. Slide right | [0, 0.10] | Enter from left along top arm |
+| 2. Rotate CW | [0.10, 0.35] | First corner, angle 0 → π/2 (3 Romik subphases) |
+| 3. Slide down | [0.35, 0.65] | Move down vertical segment |
+| 4. Rotate CCW | [0.65, 0.90] | Second corner, angle π/2 → 0 (3 reversed subphases) |
+| 5. Slide right | [0.90, 1.0] | Exit along bottom arm |
+
+Phase 4 uses a modified rotation path derived from the Mathematica `SofaMovieWithHallwayTwoCorners` function: `basepoint.x = ambiX(π/2).x − ambiX(a).x`, `basepoint.y = 1 − ambiX(a).y`, with offset `(1, −V+1)` (the second corner position). The slide distance `xinitial = V − 1 + ambiX(π/2).x` is derived from continuity at phase boundaries.
+
+The S-hallway polygon (with arm length parameter V=3): `(-L,0), (0,0), (0,−V), (L+1,−V), (L+1,−V+1), (1,−V+1), (1,1), (−L,1)`. Contact points and phase highlighting are shown only during Phase 2 (first rotation).
 
 ### Unit square (special case)
 The unit square has no rotation, so T1/T2 don't apply. Its motion is 2 eased subphases:
@@ -93,7 +117,7 @@ The unit square has no rotation, so T1/T2 don't apply. Its motion is 2 eased sub
 
 ### 3D View
 - Three.js WebGL rendering with black background
-- Hallway: gray L-shaped floor with white extruded wall rails (height H1 = 0.2)
+- Hallway: gray floor (L-shaped or S-shaped depending on sofa) with extruded wall rails (height H1 = 0.2)
 - Sofa: 2D canonical shape extruded upward (height H2 = 0.6), translucent blue material
 - Dual viewports: hallway perspective (sofa moves) and sofa perspective (hallway moves around fixed sofa)
 - OrbitControls for drag-to-orbit camera; scroll drives animation (not zoom)

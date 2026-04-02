@@ -11,6 +11,7 @@ The app includes animations of several known sofa shapes:
 - **Hammersley sofa** — generalized Hammersley construction with configurable inner radius
 - **Gerver's sofa** — the conjectured optimal sofa (area ≈ 2.2195)
 - **Romik's ambidextrous sofa** — an optimal symmetric sofa that can navigate two successive corners
+- **Romik (double turn)** — the same ambidextrous sofa navigating an S-shaped hallway with two right-angle turns, demonstrating the shape's ability to handle both clockwise and counterclockwise rotations
 
 ## Features
 
