@@ -11,6 +11,20 @@
     <button class="tab active" data-view="basic">2D View</button>
     <button class="tab" data-view="3d">3D View</button>
     <button class="tab" data-view="balanced">Sofa Optimizer</button>
+    <button id="app-logo" title="About SofaMover">
+      <canvas id="logo-canvas" width="64" height="38"></canvas>
+      <span id="logo-text">SofaMover</span>
+    </button>
+  </div>
+
+  <!-- About modal -->
+  <div id="about-overlay" role="dialog" aria-modal="true" aria-labelledby="about-title" aria-hidden="true">
+    <div id="about-modal">
+      <button id="about-close" title="Close">&times;</button>
+      <div id="about-title"><canvas id="about-logo-canvas" width="64" height="38"></canvas>SofaMover 1.0</div>
+      <p>An interactive app for visualizing the mathematical theory of the moving sofa problem</p>
+      <p class="about-credit">Created by <a href="https://math.ucdavis.edu/~romik" target="_blank" rel="noopener">Dan Romik</a>, April 2026</p>
+    </div>
   </div>
 
   <div id="main-area">

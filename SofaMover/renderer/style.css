@@ -20,6 +20,117 @@ body {
   padding: 0 12px;
 }
 
+/* App logo */
+#app-logo {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  user-select: none;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#app-logo:hover {
+  background: rgba(255, 140, 0, 0.12);
+}
+
+#logo-canvas {
+  width: 32px;
+  height: 19px;
+}
+
+#logo-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ff8c00;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 6px rgba(255, 140, 0, 0.5), 0 0 12px rgba(255, 140, 0, 0.2);
+}
+
+/* About modal */
+#about-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+#about-overlay.open {
+  display: flex;
+}
+
+#about-modal {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 10px;
+  padding: 28px 32px;
+  max-width: 420px;
+  width: 90%;
+  position: relative;
+  text-align: center;
+  color: #ccc;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#about-modal p {
+  margin: 12px 0;
+}
+
+#about-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ff8c00;
+  text-shadow: 0 0 8px rgba(255, 140, 0, 0.4);
+  margin-bottom: 8px;
+}
+
+#about-logo-canvas {
+  width: 40px;
+  height: 24px;
+}
+
+.about-credit {
+  color: #999;
+}
+
+.about-credit a {
+  color: #ff8c00;
+  text-decoration: none;
+}
+
+.about-credit a:hover {
+  text-decoration: underline;
+}
+
+#about-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+#about-close:hover {
+  color: #fff;
+}
+
 .tab {
   background: none;
   border: none;

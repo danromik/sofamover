@@ -671,6 +671,14 @@ document.querySelectorAll('#tab-bar .tab').forEach(btn => {
 // --- Keyboard shortcuts ---
 
 document.addEventListener('keydown', (e) => {
+  // When about modal is open, only handle Escape to dismiss it
+  if (document.getElementById('about-overlay').classList.contains('open')) {
+    if (e.code === 'Escape') {
+      document.getElementById('about-overlay').classList.remove('open');
+    }
+    return;
+  }
+
   // Don't capture when typing in an input
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
@@ -811,6 +819,54 @@ document.querySelectorAll('input[name="perspective"]').forEach(radio => {
   });
 });
 
+// --- About modal ---
+const aboutOverlay = document.getElementById('about-overlay');
+const aboutModal = document.getElementById('about-modal');
+let aboutPreviousFocus = null;
+
+function openAboutModal() {
+  aboutPreviousFocus = document.activeElement;
+  aboutOverlay.classList.add('open');
+  aboutOverlay.setAttribute('aria-hidden', 'false');
+  // Focus the close button
+  document.getElementById('about-close').focus();
+}
+
+function closeAboutModal() {
+  aboutOverlay.classList.remove('open');
+  aboutOverlay.setAttribute('aria-hidden', 'true');
+  if (aboutPreviousFocus) {
+    aboutPreviousFocus.focus();
+    aboutPreviousFocus = null;
+  }
+}
+
+document.getElementById('app-logo').addEventListener('click', openAboutModal);
+document.getElementById('about-close').addEventListener('click', closeAboutModal);
+aboutOverlay.addEventListener('click', (e) => {
+  if (e.target === aboutOverlay) closeAboutModal();
+});
+
+// Focus trap: cycle Tab only through focusable elements inside the modal
+aboutOverlay.addEventListener('keydown', (e) => {
+  if (e.code !== 'Tab') return;
+  const focusable = aboutModal.querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])');
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey) {
+    if (document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    }
+  } else {
+    if (document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+});
+
 // --- Settings panel ---
 document.getElementById('settings-btn').addEventListener('click', () => {
   document.getElementById('settings-panel').classList.toggle('open');
@@ -910,3 +966,60 @@ updateRadiusUI();
 buildPhasesUI(sofas[0]);
 updateLayout();
 resizeCanvases();
+
+// --- Logo: draw miniature Gerver sofa on a canvas ---
+function drawSofaLogo(canvas) {
+  if (!canvas || !Gerver) return;
+  const ctx = canvas.getContext('2d');
+  const pts = Gerver.canonicalPoints;
+  if (!pts || pts.length === 0) return;
+
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const p of pts) {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  }
+  const w = maxX - minX, h = maxY - minY;
+  const pad = 4;
+  const cw = canvas.width, ch = canvas.height;
+  const scale = Math.min((cw - 2 * pad) / w, (ch - 2 * pad) / h);
+  const ox = (cw - w * scale) / 2 - minX * scale;
+  const oy = (ch - h * scale) / 2 - minY * scale;
+
+  ctx.save();
+  ctx.translate(cw / 2, ch / 2);
+  ctx.rotate(Math.PI);
+  ctx.translate(-cw / 2, -ch / 2);
+
+  ctx.shadowColor = 'rgba(255, 140, 0, 0.7)';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x * scale + ox, pts[0].y * scale + oy);
+  for (let i = 1; i < pts.length; i++) {
+    ctx.lineTo(pts[i].x * scale + ox, pts[i].y * scale + oy);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = '#ff8c00';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.shadowBlur = 16;
+  ctx.shadowColor = 'rgba(255, 140, 0, 0.4)';
+  ctx.stroke();
+
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x * scale + ox, pts[0].y * scale + oy);
+  for (let i = 1; i < pts.length; i++) {
+    ctx.lineTo(pts[i].x * scale + ox, pts[i].y * scale + oy);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255, 140, 0, 0.1)';
+  ctx.fill();
+  ctx.restore();
+}
+
+drawSofaLogo(document.getElementById('logo-canvas'));
+drawSofaLogo(document.getElementById('about-logo-canvas'));
