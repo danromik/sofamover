@@ -17,11 +17,15 @@ The app includes animations of several known sofa shapes:
 
 - **2D View** with hallway, sofa, and contact point perspectives
 - **3D View** with extruded hallway and sofa meshes, dual viewports (hallway and sofa reference frames), and orbit camera controls
-- **Balanced Polygons** — iterative optimization view implementing Gibbs's (2014) approach: start from a Hammersley sofa approximation (intersection of N rotated L-shaped hallways) and apply gradient ascent to maximize the area, converging toward the Gerver sofa
+- **Sofa Optimizer** — iterative optimization view implementing Gibbs's (2014) approach: start from a Hammersley sofa approximation (intersection of N rotated L-shaped hallways) and apply gradient ascent to maximize the area, converging toward the Gerver sofa
 - Animated sofa movement with play/pause, speed control, and a scrubbing slider
 - Switchable perspectives: hallway frame, sofa frame, or split-screen
 
-## Running
+## Download
+
+Downloadable binaries for macOS, Windows, and Linux will be available soon.
+
+## Running from source
 
 Requires [Node.js](https://nodejs.org/).
 
@@ -30,10 +34,6 @@ cd SofaMover
 npm install
 npm start
 ```
-
-## Status
-
-This project is a work in progress. I'm actively working on improving the visualizations and adding more sofa visualization features.
 
 ## Author
 
